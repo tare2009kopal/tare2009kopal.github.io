@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ThyraPatch — Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg:       #f0f4f9;
+      --sidebar:  #0d2b45;
+      --accent:   #1a8fe3;
+      --accent2:  #0bc4a4;
+      --danger:   #e84040;
+      --warn:     #f4a22d;
+      --ok:       #22c55e;
+      --card:     #ffffff;
+      --text:     #1a2b3c;
+      --muted:    #6b7f96;
+      --border:   #dce5f0;
+      --radius:   14px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ── SIDEBAR ─────────────────────────────────── */
+    .sidebar {
+      width: 230px;
+      background: var(--sidebar);
+      display: flex;
+      flex-direction: column;
+      padding: 0 0 24px;
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      z-index: 100;
+    }
+    .sidebar-logo {
+      padding: 28px 24px 18px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+    .sidebar-logo h1 {
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -.5px;
+    }
+    .sidebar-logo span { color: var(--accent2); }
+    .sidebar-logo p {
+      font-size: .7rem;
+      color: rgba(255,255,255,.45);
+      margin-top: 2px;
+      letter-spacing: .5px;
+      text-transform: uppercase;
+    }
+    .nav { padding: 20px 12px; flex: 1; }
+    .nav-group { margin-bottom: 8px; }
+    .nav-label {
+      font-size: .65rem;
+      font-weight: 700;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.3);
+      padding: 0 12px;
+      margin-bottom: 6px;
+    }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 9px;
+      cursor: pointer;
+      color: rgba(255,255,255,.55);
+      font-size: .85rem;
+      font-weight: 500;
+      transition: all .15s;
+      margin-bottom: 2px;
+    }
+    .nav-item:hover { background: rgba(255,255,255,.07); color: #fff; }
+    .nav-item.active {
+      background: rgba(26,143,227,.22);
+      color: #fff;
+    }
+    .nav-item .icon { font-size: 1rem; width: 20px; text-align: center; }
+    .nav-badge {
+      margin-left: auto;
+      background: var(--danger);
+      color: #fff;
+      font-size: .65rem;
+      font-weight: 700;
+      border-radius: 20px;
+      padding: 2px 7px;
+    }
+    .sidebar-user {
+      margin: 0 12px;
+      padding: 14px;
+      background: rgba(255,255,255,.06);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .avatar {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; color: #fff; font-size: .85rem;
+      flex-shrink: 0;
+    }
+    .sidebar-user-info p { font-size: .8rem; color: #fff; font-weight: 600; }
+    .sidebar-user-info span { font-size: .68rem; color: rgba(255,255,255,.4); }
+
+    /* ── MAIN ────────────────────────────────────── */
+    .main {
+      margin-left: 230px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    .topbar {
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      padding: 0 28px;
+      height: 62px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .topbar-left h2 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .topbar-left p { font-size: .75rem; color: var(--muted); }
+    .topbar-right { display: flex; align-items: center; gap: 14px; }
+    .sync-indicator {
+      display: flex; align-items: center; gap: 6px;
+      font-size: .75rem; color: var(--ok); font-weight: 600;
+    }
+    .sync-dot {
+      width: 8px; height: 8px;
+      background: var(--ok);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%,100% { opacity: 1; transform: scale(1); }
+      50%      { opacity: .5; transform: scale(1.3); }
+    }
+    .notif-btn {
+      position: relative;
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 1rem;
+    }
+    .notif-dot {
+      position: absolute; top: 5px; right: 5px;
+      width: 9px; height: 9px;
+      background: var(--danger);
+      border-radius: 50%;
+      border: 2px solid var(--card);
+    }
+
+    /* ── CONTENT ─────────────────────────────────── */
+    .content { padding: 26px 28px; }
+
+    /* alert banner */
+    .alert-banner {
+      background: linear-gradient(90deg, #fff3e0, #fff8ec);
+      border: 1.5px solid #f4a22d;
+      border-radius: var(--radius);
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 22px;
+    }
+    .alert-banner .alert-icon { font-size: 1.3rem; }
+    .alert-banner p { font-size: .83rem; color: #7a4800; }
+    .alert-banner p strong { display: block; font-size: .88rem; color: #5a3200; }
+    .alert-banner .dismiss {
+      margin-left: auto;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--muted);
+      font-size: 1.1rem;
+      line-height: 1;
+    }
+
+    /* stat cards row */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-bottom: 22px;
+    }
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 18px 14px;
+      position: relative;
+      overflow: hidden;
+    }
+    .stat-card .label {
+      font-size: .7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .stat-card .value {
+      font-size: 1.75rem;
+      font-weight: 800;
+      line-height: 1;
+      color: var(--text);
+    }
+    .stat-card .unit {
+      font-size: .7rem;
+      color: var(--muted);
+      margin-left: 3px;
+      font-weight: 500;
+    }
+    .stat-card .range {
+      font-size: .7rem;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+    .stat-card .status-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: .68rem;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 20px;
+      margin-top: 8px;
+    }
+    .tag-ok    { background: #dcfce7; color: #15803d; }
+    .tag-warn  { background: #fff3cd; color: #92400e; }
+    .tag-high  { background: #fee2e2; color: #b91c1c; }
+    .stat-bar {
+      height: 4px;
+      background: var(--border);
+      border-radius: 99px;
+      margin-top: 10px;
+      overflow: hidden;
+    }
+    .stat-bar-fill {
+      height: 100%;
+      border-radius: 99px;
+      transition: width .6s ease;
+    }
+    .bar-ok   { background: var(--ok); }
+    .bar-warn { background: var(--warn); }
+    .bar-high { background: var(--danger); }
+
+    /* mid grid */
+    .mid-grid {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 16px;
+      margin-bottom: 22px;
+    }
+
+    /* chart card */
+    .chart-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 22px;
+    }
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .card-header h3 { font-size: .93rem; font-weight: 700; }
+    .card-header p { font-size: .72rem; color: var(--muted); margin-top: 1px; }
+    .period-tabs { display: flex; gap: 4px; }
+    .period-tab {
+      font-size: .7rem;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: none;
+      cursor: pointer;
+      color: var(--muted);
+      transition: all .15s;
+    }
+    .period-tab.active {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+    canvas { max-width: 100%; }
+
+    /* patch status card */
+    .patch-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 22px;
+      display: flex;
+      flex-direction: column;
+    }
+    .patch-visual {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 10px 0 20px;
+    }
+    .patch-body {
+      width: 130px;
+      height: 90px;
+      background: linear-gradient(135deg, #e8f4fd, #d0eaf8);
+      border: 2px solid var(--accent);
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      box-shadow: 0 4px 20px rgba(26,143,227,.15);
+    }
+    .patch-inner {
+      width: 80px; height: 55px;
+      background: linear-gradient(135deg, #0d2b45, #1a4a72);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .patch-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 3px;
+    }
+    .needle {
+      width: 5px; height: 10px;
+      background: linear-gradient(180deg, #a8d8f8, #1a8fe3);
+      border-radius: 1px 1px 3px 3px;
+    }
+    .needle:nth-child(odd) { opacity: .6; }
+    .patch-signal {
+      position: absolute;
+      top: -8px; right: -8px;
+      width: 22px; height: 22px;
+      background: var(--ok);
+      border-radius: 50%;
+      border: 3px solid var(--card);
+      display: flex; align-items: center; justify-content: center;
+      font-size: .6rem;
+    }
+    .patch-label { font-size: .7rem; color: var(--muted); margin-top: 8px; }
+    .patch-stats { width: 100%; }
+    .patch-stat {
+      margin-bottom: 14px;
+    }
+    .patch-stat-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 5px;
+    }
+    .patch-stat-header span:first-child {
+      font-size: .75rem;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .patch-stat-header span:last-child {
+      font-size: .75rem;
+      font-weight: 700;
+    }
+    .prog-bar {
+      height: 7px;
+      background: var(--border);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .prog-fill {
+      height: 100%;
+      border-radius: 99px;
+      transition: width .8s ease;
+    }
+    .prog-green  { background: linear-gradient(90deg, var(--ok), #4ade80); }
+    .prog-yellow { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+    .prog-red    { background: linear-gradient(90deg, var(--danger), #f87171); }
+
+    .replace-btn {
+      width: 100%;
+      margin-top: 4px;
+      padding: 11px;
+      background: linear-gradient(90deg, var(--accent), #1065b3);
+      color: #fff;
+      border: none;
+      border-radius: 9px;
+      font-size: .82rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity .2s;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .replace-btn:hover { opacity: .88; }
+
+    /* bottom grid */
+    .bottom-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    /* activity / events list */
+    .events-list { display: flex; flex-direction: column; gap: 10px; }
+    .event-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px 14px;
+      background: var(--bg);
+      border-radius: 10px;
+    }
+    .event-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      margin-top: 4px;
+      flex-shrink: 0;
+    }
+    .dot-ok     { background: var(--ok); }
+    .dot-warn   { background: var(--warn); }
+    .dot-info   { background: var(--accent); }
+    .dot-danger { background: var(--danger); }
+    .event-text { font-size: .78rem; color: var(--text); line-height: 1.4; }
+    .event-text strong { display: block; font-weight: 600; }
+    .event-time { margin-left: auto; font-size: .68rem; color: var(--muted); white-space: nowrap; }
+
+    /* dose log */
+    .dose-table { width: 100%; border-collapse: collapse; }
+    .dose-table th {
+      font-size: .68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      color: var(--muted);
+      text-align: left;
+      padding: 0 10px 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    .dose-table td {
+      font-size: .78rem;
+      padding: 9px 10px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+    }
+    .dose-table tr:last-child td { border-bottom: none; }
+    .dose-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: .68rem;
+      font-weight: 700;
+    }
+    .badge-auto { background: #dbeafe; color: #1e40af; }
+    .badge-man  { background: #f3e8ff; color: #7c3aed; }
+    .badge-skip { background: #f1f5f9; color: #64748b; }
+
+    /* mini-gauge */
+    .gauge-container {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .mini-gauge {
+      flex: 1;
+      background: var(--bg);
+      border-radius: 10px;
+      padding: 12px 14px;
+      text-align: center;
+    }
+    .mini-gauge .g-label {
+      font-size: .65rem;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .7px;
+    }
+    .mini-gauge .g-val {
+      font-size: 1.2rem;
+      font-weight: 800;
+      margin: 4px 0 1px;
+    }
+    .mini-gauge .g-unit {
+      font-size: .6rem;
+      color: var(--muted);
+    }
+    .mini-gauge .g-arrow { font-size: .8rem; }
+
+    /* live ticker */
+    .live-ticker {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: .72rem;
+      color: var(--muted);
+      margin-top: 10px;
+    }
+    .live-badge {
+      background: var(--ok);
+      color: #fff;
+      font-size: .6rem;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      letter-spacing: .5px;
+    }
+
+    /* responsive */
+    @media (max-width: 1100px) {
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+      .mid-grid  { grid-template-columns: 1fr; }
+      .bottom-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 720px) {
+      .sidebar { width: 60px; }
+      .sidebar-logo h1, .nav-label, .nav-item span:not(.icon),
+      .sidebar-user-info, .sidebar-logo p { display: none; }
+      .main { margin-left: 60px; }
+      .stats-row { grid-template-columns: 1fr 1fr; }
+    }
+
+    /* scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+  </style>
+</head>
+<body>
+
+<!-- ── SIDEBAR ──────────────────────────────────── -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <h1>Thyra<span>Patch</span></h1>
+    <p>Thyroid Monitor v2.1</p>
+  </div>
+  <nav class="nav">
+    <div class="nav-group">
+      <div class="nav-label">Monitor</div>
+      <div class="nav-item active"><span class="icon">📊</span> <span>Dashboard</span></div>
+      <div class="nav-item"><span class="icon">📈</span> <span>Trends</span></div>
+      <div class="nav-item"><span class="icon">🔬</span> <span>Biomarkers</span></div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-label">Treatment</div>
+      <div class="nav-item"><span class="icon">💊</span> <span>Dosing Log</span></div>
+      <div class="nav-item">
+        <span class="icon">🩹</span> <span>Patch Status</span>
+        <span class="nav-badge">!</span>
+      </div>
+      <div class="nav-item"><span class="icon">🔔</span> <span>Alerts</span> <span class="nav-badge">3</span></div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-label">Account</div>
+      <div class="nav-item"><span class="icon">👩‍⚕️</span> <span>Care Team</span></div>
+      <div class="nav-item"><span class="icon">⚙️</span> <span>Settings</span></div>
+    </div>
+  </nav>
+  <div class="sidebar-user">
+    <div class="avatar">SR</div>
+    <div class="sidebar-user-info">
+      <p>Sarah R.</p>
+      <span>Patient ID #GD-2847</span>
+    </div>
+  </div>
+</aside>
+
+<!-- ── MAIN ─────────────────────────────────────── -->
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-left">
+      <h2>Dashboard</h2>
+      <p id="live-time">Loading...</p>
+    </div>
+    <div class="topbar-right">
+      <div class="sync-indicator">
+        <div class="sync-dot"></div>
+        Patch connected · Syncing every 15 min
+      </div>
+      <div class="notif-btn">🔔<div class="notif-dot"></div></div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ALERT BANNER -->
+    <div class="alert-banner" id="alertBanner">
+      <div class="alert-icon">⚠️</div>
+      <p>
+        <strong>Medication Reservoir — Low Supply (18% remaining)</strong>
+        Estimated 2–3 days before refill needed. Order replacement cartridge or visit your care provider.
+      </p>
+      <button class="dismiss" onclick="document.getElementById('alertBanner').style.display='none'">✕</button>
+    </div>
+
+    <!-- STAT CARDS -->
+    <div class="stats-row">
+      <!-- TRAb -->
+      <div class="stat-card">
+        <div class="label">TRAb Level</div>
+        <div>
+          <span class="value" id="trab-val">2.1</span>
+          <span class="unit">IU/L</span>
+        </div>
+        <div class="range">Normal: &lt; 1.75 · Elevated: &gt; 3.5</div>
+        <div class="status-tag tag-warn">↓ Declining · Borderline</div>
+        <div class="stat-bar"><div class="stat-bar-fill bar-warn" style="width:55%"></div></div>
+      </div>
+      <!-- TSH -->
+      <div class="stat-card">
+        <div class="label">TSH</div>
+        <div>
+          <span class="value" id="tsh-val">0.08</span>
+          <span class="unit">mIU/L</span>
+        </div>
+        <div class="range">Normal: 0.4 – 4.0</div>
+        <div class="status-tag tag-warn">↑ Recovering · Suppressed</div>
+        <div class="stat-bar"><div class="stat-bar-fill bar-warn" style="width:12%"></div></div>
+      </div>
+      <!-- Free T4 -->
+      <div class="stat-card">
+        <div class="label">Free T4</div>
+        <div>
+          <span class="value" id="ft4-val">1.9</span>
+          <span class="unit">ng/dL</span>
+        </div>
+        <div class="range">Normal: 0.8 – 1.8</div>
+        <div class="status-tag tag-warn">↓ Mildly Elevated</div>
+        <div class="stat-bar"><div class="stat-bar-fill bar-warn" style="width:72%"></div></div>
+      </div>
+      <!-- Free T3 -->
+      <div class="stat-card">
+        <div class="label">Free T3</div>
+        <div>
+          <span class="value" id="ft3-val">4.1</span>
+          <span class="unit">pg/mL</span>
+        </div>
+        <div class="range">Normal: 2.3 – 4.2</div>
+        <div class="status-tag tag-ok">✓ Within Range</div>
+        <div class="stat-bar"><div class="stat-bar-fill bar-ok" style="width:84%"></div></div>
+      </div>
+    </div>
+
+    <!-- MID GRID: trend chart + patch status -->
+    <div class="mid-grid">
+
+      <!-- TREND CHART -->
+      <div class="chart-card">
+        <div class="card-header">
+          <div>
+            <h3>TRAb Trend</h3>
+            <p>Continuous interstitial fluid monitoring</p>
+          </div>
+          <div class="period-tabs">
+            <button class="period-tab active" onclick="setRange('7d', this)">7D</button>
+            <button class="period-tab" onclick="setRange('30d', this)">30D</button>
+            <button class="period-tab" onclick="setRange('90d', this)">90D</button>
+          </div>
+        </div>
+        <canvas id="trendChart" height="155"></canvas>
+        <div class="live-ticker">
+          <span class="live-badge">LIVE</span>
+          Last reading at <span id="last-read" style="margin-left:4px">--:--</span>&nbsp;·&nbsp;
+          Next sync in <span id="next-sync" style="margin-left:4px">--</span> min
+        </div>
+      </div>
+
+      <!-- PATCH STATUS -->
+      <div class="patch-card">
+        <div class="card-header">
+          <div>
+            <h3>Patch Status</h3>
+            <p>Applied Feb 24, 2026</p>
+          </div>
+          <span class="status-tag tag-ok" style="font-size:.68rem;padding:4px 8px;">● Active</span>
+        </div>
+        <div class="patch-visual">
+          <div class="patch-body">
+            <div class="patch-inner">
+              <div class="patch-grid">
+                <div class="needle"></div><div class="needle"></div>
+                <div class="needle"></div><div class="needle"></div>
+                <div class="needle"></div><div class="needle"></div>
+                <div class="needle"></div><div class="needle"></div>
+              </div>
+            </div>
+            <div class="patch-signal">📡</div>
+          </div>
+          <div class="patch-label">Microneedle array · Right upper arm</div>
+        </div>
+        <div class="patch-stats">
+          <div class="patch-stat">
+            <div class="patch-stat-header">
+              <span>Patch Wear Duration</span>
+              <span style="color:var(--warn)">4 / 7 days</span>
+            </div>
+            <div class="prog-bar">
+              <div class="prog-fill prog-yellow" style="width:57%"></div>
+            </div>
+          </div>
+          <div class="patch-stat">
+            <div class="patch-stat-header">
+              <span>Medication Reservoir</span>
+              <span style="color:var(--danger)">18%</span>
+            </div>
+            <div class="prog-bar">
+              <div class="prog-fill prog-red" style="width:18%"></div>
+            </div>
+          </div>
+          <div class="patch-stat">
+            <div class="patch-stat-header">
+              <span>Sensor Accuracy</span>
+              <span style="color:var(--ok)">97.2%</span>
+            </div>
+            <div class="prog-bar">
+              <div class="prog-fill prog-green" style="width:97%"></div>
+            </div>
+          </div>
+          <div class="patch-stat">
+            <div class="patch-stat-header">
+              <span>Battery / Charge</span>
+              <span style="color:var(--ok)">81%</span>
+            </div>
+            <div class="prog-bar">
+              <div class="prog-fill prog-green" style="width:81%"></div>
+            </div>
+          </div>
+        </div>
+        <button class="replace-btn">🛒 Order Replacement Cartridge</button>
+      </div>
+    </div>
+
+    <!-- BOTTOM GRID -->
+    <div class="bottom-grid">
+
+      <!-- RECENT EVENTS -->
+      <div class="chart-card">
+        <div class="card-header">
+          <div>
+            <h3>Recent Activity</h3>
+            <p>System events &amp; alerts</p>
+          </div>
+        </div>
+        <div class="events-list">
+          <div class="event-item">
+            <div class="event-dot dot-danger"></div>
+            <div class="event-text">
+              <strong>Low reservoir alert triggered</strong>
+              Medication cartridge below 20% threshold. Refill required within 48–72 hrs.
+            </div>
+            <span class="event-time">2h ago</span>
+          </div>
+          <div class="event-item">
+            <div class="event-dot dot-info"></div>
+            <div class="event-text">
+              <strong>Auto-dose delivered · 5 mg MMI</strong>
+              TRAb exceeded 2.3 IU/L — automated methimazole microdose released.
+            </div>
+            <span class="event-time">6h ago</span>
+          </div>
+          <div class="event-item">
+            <div class="event-dot dot-ok"></div>
+            <div class="event-text">
+              <strong>Free T3 entered normal range</strong>
+              Dropped from 4.5 to 4.1 pg/mL following yesterday's dosing cycle.
+            </div>
+            <span class="event-time">14h ago</span>
+          </div>
+          <div class="event-item">
+            <div class="event-dot dot-warn"></div>
+            <div class="event-text">
+              <strong>Patch sync interruption (2 min)</strong>
+              Bluetooth reconnected automatically. No data loss detected.
+            </div>
+            <span class="event-time">1d ago</span>
+          </div>
+          <div class="event-item">
+            <div class="event-dot dot-ok"></div>
+            <div class="event-text">
+              <strong>Weekly care team report sent</strong>
+              Biomarker summary automatically shared with Dr. Patel.
+            </div>
+            <span class="event-time">2d ago</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- DOSING LOG -->
+      <div class="chart-card">
+        <div class="card-header">
+          <div>
+            <h3>Automated Dosing Log</h3>
+            <p>Methimazole (MMI) micro-deliveries</p>
+          </div>
+        </div>
+
+        <div class="gauge-container">
+          <div class="mini-gauge">
+            <div class="g-label">Total Today</div>
+            <div class="g-val" style="color:var(--accent)">10 mg</div>
+            <div class="g-unit">MMI delivered</div>
+          </div>
+          <div class="mini-gauge">
+            <div class="g-label">This Week</div>
+            <div class="g-val" style="color:var(--accent2)">62 mg</div>
+            <div class="g-unit">cumulative</div>
+          </div>
+          <div class="mini-gauge">
+            <div class="g-label">Next Dose</div>
+            <div class="g-val" style="color:var(--warn)">~4h</div>
+            <div class="g-unit">if TRAb &gt; 2.0</div>
+          </div>
+        </div>
+
+        <table class="dose-table">
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Dose</th>
+              <th>Trigger (TRAb)</th>
+              <th>Type</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>06:14 AM</td>
+              <td>5 mg</td>
+              <td>2.4 IU/L</td>
+              <td><span class="dose-badge badge-auto">⚡ Auto</span></td>
+            </tr>
+            <tr>
+              <td>12:02 AM</td>
+              <td>5 mg</td>
+              <td>2.6 IU/L</td>
+              <td><span class="dose-badge badge-auto">⚡ Auto</span></td>
+            </tr>
+            <tr>
+              <td>Feb 27 · 7:44 PM</td>
+              <td>5 mg</td>
+              <td>2.9 IU/L</td>
+              <td><span class="dose-badge badge-auto">⚡ Auto</span></td>
+            </tr>
+            <tr>
+              <td>Feb 27 · 11:30 AM</td>
+              <td>5 mg</td>
+              <td>Manual override</td>
+              <td><span class="dose-badge badge-man">✋ Manual</span></td>
+            </tr>
+            <tr>
+              <td>Feb 27 · 6:00 AM</td>
+              <td>—</td>
+              <td>1.9 IU/L</td>
+              <td><span class="dose-badge badge-skip">⏭ Skipped</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<script>
+// ── LIVE CLOCK ──────────────────────────────────────
+function updateClock() {
+  const now = new Date();
+  document.getElementById('live-time').textContent =
+    now.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', year:'numeric' }) +
+    ' · ' + now.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+  document.getElementById('last-read').textContent =
+    now.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' });
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ── NEXT SYNC COUNTDOWN ─────────────────────────────
+let syncSeconds = 900; // 15 min
+setInterval(() => {
+  syncSeconds--;
+  if (syncSeconds <= 0) syncSeconds = 900;
+  document.getElementById('next-sync').textContent = Math.ceil(syncSeconds / 60);
+}, 1000);
+
+// ── LIVE VALUE FLUCTUATION ──────────────────────────
+const baseVals = { trab: 2.1, tsh: 0.08, ft4: 1.9, ft3: 4.1 };
+const fluctRange = { trab: .06, tsh: .005, ft4: .04, ft3: .05 };
+function fluctuate() {
+  for (const [k, base] of Object.entries(baseVals)) {
+    const r = fluctRange[k];
+    const v = base + (Math.random() * r * 2 - r);
+    const el = document.getElementById(k + '-val');
+    if (el) el.textContent = v.toFixed(k === 'tsh' ? 3 : 1);
+  }
+}
+setInterval(fluctuate, 8000);
+
+// ── CHART DATA ──────────────────────────────────────
+const datasets = {
+  '7d': {
+    labels: ['Feb 22','Feb 23','Feb 24','Feb 25','Feb 26','Feb 27','Feb 28'],
+    trab:   [3.1, 2.9, 2.7, 2.5, 2.4, 2.3, 2.1],
+    tsh:    [0.01,0.02,0.03,0.05,0.06,0.07,0.08]
+  },
+  '30d': {
+    labels: Array.from({length:30}, (_,i) => {
+      const d = new Date(2026,1,28 - 29 + i);
+      return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+    }),
+    trab: Array.from({length:30}, (_,i) => +(5.2 - i * 0.104 + (Math.random()*.2-.1)).toFixed(2)),
+    tsh:  Array.from({length:30}, (_,i) => +(0.005 + i * 0.0025 + (Math.random()*.003)).toFixed(4))
+  },
+  '90d': {
+    labels: Array.from({length:18}, (_,i) => {
+      const d = new Date(2026,1,28 - 85 + i*5);
+      return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+    }),
+    trab: Array.from({length:18}, (_,i) => +(7.8 - i * 0.32 + (Math.random()*.3-.15)).toFixed(2)),
+    tsh:  Array.from({length:18}, (_,i) => +(0.003 + i * 0.0043 + (Math.random()*.003)).toFixed(4))
+  }
+};
+
+const ctx = document.getElementById('trendChart').getContext('2d');
+const gradBlue = ctx.createLinearGradient(0, 0, 0, 200);
+gradBlue.addColorStop(0, 'rgba(26,143,227,.25)');
+gradBlue.addColorStop(1, 'rgba(26,143,227,0)');
+
+let chart = new Chart(ctx, {
+  type: 'line',
+  data: {
+    labels: datasets['7d'].labels,
+    datasets: [
+      {
+        label: 'TRAb (IU/L)',
+        data: datasets['7d'].trab,
+        borderColor: '#1a8fe3',
+        backgroundColor: gradBlue,
+        fill: true,
+        tension: .45,
+        pointBackgroundColor: '#1a8fe3',
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        yAxisID: 'y'
+      },
+      {
+        label: 'TSH (mIU/L)',
+        data: datasets['7d'].tsh,
+        borderColor: '#0bc4a4',
+        backgroundColor: 'transparent',
+        fill: false,
+        tension: .45,
+        borderDash: [5,4],
+        pointBackgroundColor: '#0bc4a4',
+        pointRadius: 3,
+        yAxisID: 'y1'
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: {
+        labels: { font: { size: 11 }, boxWidth: 12, padding: 16 }
+      },
+      tooltip: {
+        callbacks: {
+          label: ctx => {
+            if (ctx.datasetIndex === 0) return ` TRAb: ${ctx.parsed.y} IU/L`;
+            return ` TSH: ${ctx.parsed.y} mIU/L`;
+          }
+        }
+      }
+    },
+    scales: {
+      x: {
+        grid: { color: '#edf2f7' },
+        ticks: { font: { size: 10 }, color: '#6b7f96', maxRotation: 0 }
+      },
+      y: {
+        position: 'left',
+        grid: { color: '#edf2f7' },
+        ticks: { font: { size: 10 }, color: '#1a8fe3' },
+        title: { display: true, text: 'TRAb (IU/L)', color:'#1a8fe3', font:{size:10} }
+      },
+      y1: {
+        position: 'right',
+        grid: { drawOnChartArea: false },
+        ticks: { font: { size: 10 }, color: '#0bc4a4' },
+        title: { display: true, text: 'TSH (mIU/L)', color:'#0bc4a4', font:{size:10} }
+      }
+    }
+  }
+});
+
+// reference line plugin for normal TRAb threshold
+Chart.register({
+  id: 'thresholdLine',
+  afterDraw(chart) {
+    if (chart.data.datasets.length === 0) return;
+    const { ctx, chartArea: { left, right }, scales: { y } } = chart;
+    const yPixel = y.getPixelForValue(1.75);
+    ctx.save();
+    ctx.setLineDash([4, 4]);
+    ctx.strokeStyle = '#22c55e';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(left, yPixel);
+    ctx.lineTo(right, yPixel);
+    ctx.stroke();
+    ctx.fillStyle = '#22c55e';
+    ctx.font = '9px Segoe UI, sans-serif';
+    ctx.fillText('Normal threshold (1.75)', left + 6, yPixel - 5);
+    ctx.restore();
+  }
+});
+
+function setRange(range, btn) {
+  document.querySelectorAll('.period-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const d = datasets[range];
+  chart.data.labels = d.labels;
+  chart.data.datasets[0].data = d.trab;
+  chart.data.datasets[1].data = d.tsh;
+  chart.update('active');
+}
+</script>
+</body>
+</html>
